@@ -84,7 +84,7 @@ class Fonction extends Request
         $find = "*";
         $champ = ($champ == null ? 'code_service' : 'keyword');
         $where = " $champ='$code_service'";
-       echo $sqlQuery = "SELECT " . $find . " FROM " . $table_service . " WHERE " . $where;
+        $sqlQuery = "SELECT " . $find . " FROM " . $table_service . " WHERE " . $where;
         if ($ligne = $this->dbAcces->select($sqlQuery)) {
             return new Service($ligne[0]);
         } else
@@ -392,7 +392,7 @@ class Fonction extends Request
         $sqlQuery = "SELECT " . $champ . " FROM " . $table . " ";
         if ($ligne = $this->dbAcces->selectArray($sqlQuery)) {
 
-            //print_r($ligne);
+            
             while ($i < count($ligne) and count($ligne) > 0) {
                 if ($ligne[$i][$champ] != '') {
                     $tri = str_replace(";", "|", $ligne[$i][$champ]);
@@ -427,7 +427,7 @@ class Fonction extends Request
 
             if ($infoBD != null) {
                 $ret = new next_table($infoBD[0]);
-                // print_r($ret);
+                
                 if (NEXT_WRITING)
                     $this->next = $ret->next;
                 return $ret;

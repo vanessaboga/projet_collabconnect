@@ -20,9 +20,7 @@ class MENU extends Fonction
     public function setResponse($result, $text, $next = 'menu', $freeFlow = '', $facturation = "YES")
     {
         if ($this->canal == "USSD") {
-            // print "laaaaaaaaa";
             $this->setNext($next);
-            // print_r($text);
             $text = $text->pourAfficher;
 
             if ($freeFlow === "") {
@@ -36,14 +34,14 @@ class MENU extends Fonction
             header('tailleMessage: ' . strlen($text));
             header('Content-Type: text/plain');
 
-            $text = str_replace('{CR}', PHP_EOL, $text);
-            print "taille message ==>" . strlen($text) . PHP_EOL;
+            //$text = str_replace('{CR}', PHP_EOL, $text);
+            //print "taille message ==>" . strlen($text) . PHP_EOL;
             print 'next: ' . $next . PHP_EOL;
             print 'ussdString: ' . $text;
         } else {
             $a_afficher = $text->title_sans_caractere;
-            $this->cdr($a_afficher);
-            $this->sms_envoi($this->telephone, $a_afficher, __FUNCTION__);
+            //$this->cdr($a_afficher);
+            //$this->sms_envoi($this->telephone, $a_afficher, __FUNCTION__);
         }
     }
 

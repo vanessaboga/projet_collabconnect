@@ -50,7 +50,7 @@ class dbAccess
             die($e->getMessage());
         }
 
-        debug("connecté");
+        // debug("connecté");
         return $this->conn;
     }
 
@@ -97,7 +97,7 @@ class dbAccess
 
     function selectOBJ($sqlQuery)
     {
-         echo $sqlQuery.PHP_EOL;
+        //  echo $sqlQuery.PHP_EOL;
         try {
             $recipesStatement = $this->connexion->prepare($sqlQuery);
             $recipesStatement->execute();
@@ -151,7 +151,7 @@ class dbAccess
         // print $sqlQuery; print_r($params);
         $recipesStatement = $this->connexion->prepare($sqlQuery);
         if (!$recipesStatement->execute($params)) {
-            print_r($recipesStatement->errorInfo());
+            // print_r($recipesStatement->errorInfo());
             if ($recipesStatement->errorInfo()[0] == 23000)
                 return "100-23000";
             else

@@ -58,8 +58,11 @@ if (isset($next) && ($next) != null && $next->diff < 60 && $next->next != '' && 
         $service->getMenuInvitPayerFacture();
     } elseif ($next !== '' && preg_match('/^listFacture_/i', $next)) {
         $service->getMenuListFacture();
-    }
-    else {
+    } elseif ($next !== '' && preg_match('/^confirmerFacture_/i', $next)) {
+        $service->getMenuConfirmerFacture();
+    } elseif ($next !== '' && preg_match('/^paiementFacture_/i', $next)) {
+        $service->getMenuPaiementFacture();
+    } else {
         $service->flowContinueMain();
     }
 } else {
