@@ -21,7 +21,7 @@ class Central extends MENU
 
     public $menuSpecialite = null;
     public $tableauSpecialite = null;
-    public $users = null;
+    public $agent = null;
 
 
     function __construct($request, $canal)
@@ -35,7 +35,7 @@ class Central extends MENU
         $this->menuUssd = new MenUssd($this->link);
         $this->menuSpecialite = new MenuServiceSpecialite();
 
-        $this->users = $this->fonction->retourneAgent();
+        $this->agent = $this->fonction->retourneAgent();
 
         $this->tableauSpecialite = array(
             "electricite" => array(
@@ -94,8 +94,11 @@ class Central extends MENU
         } else {
 
             if ($code_service == "2") {
-                $pourAfficher = new EtatLecture(1, "Saisir le numero du client", "0.Retour");
-                $this->setResponse($pourAfficher, $pourAfficher, "genererFacture");
+                $pourAfficher = new EtatLecture(1, "Generer Facture{CR}Saisir le numero du client", "0.Retour");
+                $this->setResponse(__FUNCTION__, $pourAfficher, "genererFacture");
+            } elseif ($code_service == "8") {
+
+                $this->getMenuAfficherFacture();
             } else {
                 $service = $this->retourneService($code_service);
                 if ($service != null) {
@@ -414,14 +417,6 @@ class Central extends MENU
                     break;
                 default:
                     $content = strtolower($this->content);
-                    $tableauSpecialite = $this->tableauSpecialite[$service->keyword];
-                    // if ($choix = $this->menuSpecialite->getChoix($tableauSpecialite, $content)) {
-                    //     $choix = $choix["code_service"];
-                    //     $pourAfficher = $this->messager->libelleChoixForfaitReservationElectricite($service, TARIF_RESERVATION, $delai);
-                    //     $this->setResponse($pourAfficher, $pourAfficher, "menuConfirSpecialiteElect_" . $service->code_service . "_{$delai}_{$choix}");
-                    // } else {
-                    //     $this->AfficheSpecialiteElectricite($service, $delai);
-                    // }
                     $this->getRedirectionMenuSpecialiteElectricite($service, $content, $delai);
                     break;
             }
@@ -499,7 +494,7 @@ class Central extends MENU
                         $this->getFacturationService($service, $delai, $choix);
                     } else {
                         $pourAfficher = $this->messager->libelleInviteAM($service, TARIF_RESERVATION);
-                        $this->setResponse($pourAfficher, $pourAfficher, "menuInviteAM_" . $service->code_service . "_{$delai}_{$choix}");
+                        $this->setResponse(__FUNCTION__, $pourAfficher, "menuInviteAM_" . $service->code_service . "_{$delai}_{$choix}");
                     }
                     break;
             }
@@ -575,10 +570,10 @@ class Central extends MENU
 
             $pourAfficher = $this->messager->libelleReservationOK($service, $delai, $date_rdv, $heure);
 
-            $this->setResponse($pourAfficher, $pourAfficher, "menu");
+            $this->setResponse(__FUNCTION__, $pourAfficher, "menu");
         } else {
             $pourAfficher = $this->messager->creditInsuffisant($service);
-            $this->setResponse($pourAfficher, $pourAfficher, "menu", "FB");
+            $this->setResponse(__FUNCTION__, $pourAfficher, "menu", "FB");
         }
     }
 
@@ -590,7 +585,7 @@ class Central extends MENU
     public function getMenuInvitGenererFacture()
     {
         $pourAfficher = new EtatLecture(1, "Saisir le numero du client", "0.Retour");
-        $this->setResponse($pourAfficher, $pourAfficher, "genererFacture");
+        $this->setResponse(__FUNCTION__, $pourAfficher, "genererFacture");
     }
     public function getGenererFacture()
     {
@@ -601,10 +596,10 @@ class Central extends MENU
             default:
 
                 if (ctype_digit($this->content) && strlen($this->content) >= LONGUEUR_NUMERO) {
-                    // print "traitement du numero" . PHP_EOL;
-                    $numero = trim($this->content);
+
+                    $numero = trim(substr($this->content, -LONGUEUR_NUMERO));
                     $pourAfficher = $this->menuUssd->menuGroupe(1, 1, null, "Saisir le service");
-                    $this->setResponse($pourAfficher, $pourAfficher, "getGenererFactureService_" . $numero . "_1_1");
+                    $this->setResponse(__FUNCTION__, $pourAfficher, "getGenererFactureService_" . $numero . "_1_1");
                 } else {
                     $this->getMenuInvitGenererFacture();
                 }
@@ -615,7 +610,7 @@ class Central extends MENU
     {
         //$this->LOG(__FUNCTION__."  Executing Main menu rule");
         $etal = $this->getEtatLecture();
-        print_r($etal);
+
         $page = $etal->page;
         $id_groupement = $etal->id_consultation;
         $numeroClient = $etal->context;
@@ -633,65 +628,43 @@ class Central extends MENU
                 $pourAfficher = $this->menuUssd->menuGroupe($id_groupement, $page, $params, "Saisir le service");
                 if (dbAccess::estEntier($this->content, 1)) {
                     $ideff = $this->retourneIdEffectifR($this->content, "select id_menu from menus_ussd where precedent=$id_groupement and is_active='1' $params order by position ASC");
-                    // debug("//$ideff//");
+
                     if ($ideff == null)
                         $this->setResponse($pourAfficher, $pourAfficher, $libelle . "_" . $id_context . "_{$id_groupement}_" . $pourAfficher->page);
                     else {
 
                         $afficho = $this->menuUssd->menuGroupe($ideff, 1, $params, $params);
                         if ($afficho->present > 1) {
-                            // debug("yyyyyyyyyyyyyy");
+
                             $this->setResponse($afficho, $afficho, $libelle . "_" . $id_context . "_{$ideff}_1");
                         } else {
-                            // debug("zzzzzzzzzzzz");
+
                             $afficho = $this->menuUssd->menuGroupe($ideff, 1, $params2);
-                            // print_r($afficho);
+
                             if ($afficho->present > 1) {
                                 $this->setResponse($afficho, $afficho, "debut_" . $id_context . "_{$ideff}_1");
-                            } elseif ($afficho->present == 1) {
-                                // echo "jjjjjjjj";
-                                $ideff = $this->retourneIdEffectifR(1, "select code_service from services where precedent=$ideff and statut='yes' order by position");
-                                // if ($ideff != NULL) {
-                                //     $service = $this->retourneService($ideff);
-                                //     if ($service->external != "YES") {
-                                //         $this->flowContinueMain($ideff, $id_context);
-                                //     } else {
-                                //         $next2 = $this->ussdHttp($service->url_central, "menu", $this->telephone, $this->content, $this->sessionId, $service->code_service, $id_context);
-                                //         $this->setNext("", "", $service->url_central);
-                                //         if ($next2->freeFlow_ext != "FC") {
-                                //             $this->setResponse(NEXT_EXTERNAL, new EtatLecture(1, $next2->contenu_ext), $next2->next_ext, "FB");
-                                //         } else {
-                                //             if ($next2->next_ext != EXTERNAL)
-                                //                 $this->setResponse(NEXT_EXTERNAL, new EtatLecture(1, $next2->contenu_ext), $next2->next_ext);
-                                //             else
-                                //                 $this->setResponse(__FUNCTION__, $this->menuUssd->menuGroupe(0, 1, $params), $libelle . "_" . $id_context . "_0_1");
-                                //         }
-                                //     }
-                                // } else {
-                                //     $next = $afficho->context->id_menu;
-                                //     $this->setResponse($afficho, $afficho, $libelle . "_" . $id_context . "_{$next}_1");
-                                // }
                             } else {
-                                print "xxxxxxxx";
+
                                 $service = $this->retourneService($ideff);
                                 if ($service != null) {
-                                    print_r($service);
 
                                     $forfait = $this->retourneForfait($service->service_id, "id_service");
-                                    if ($forfait != null) {
-                                        print_r($forfait);
-                                        if ($forfait->tarif == "devis") {
-                                            $libelle = $forfait->affichage . "{CR}Merci de saisir le montant de la prestation";
-                                            $pourAfficher = new EtatLecture(1, $libelle, "0.Retour");
-                                            $this->setResponse(__FUNCTION__, $pourAfficher, "designationFacturePrestation_" . $numeroClient . "_{$ideff}_1");
-                                        } else {
-                                            $libelle = $forfait->affichage . "{CR}Merci de saisir le nombre de {$forfait->souscription_aff}";
-                                            $pourAfficher = new EtatLecture(1, $libelle, "0.Retour");
-                                            $this->setResponse(__FUNCTION__, $pourAfficher, "designationPrestation_" . $numeroClient . "_{$ideff}_1");
-                                        }
-                                    } else {
-                                        $this->menuErreur();
-                                    }
+
+                                    $this->getMenuRedirectionGenerationFacture($service, $forfait, $ideff, $numeroClient);
+                                    // if ($forfait != null) {
+
+                                    //     if ($forfait->tarif == "devis") {
+                                    //         $libelle = $service->libelle . "{CR}" . $forfait->affichage . "{CR}Merci de saisir le montant de la prestation";
+                                    //         $pourAfficher = new EtatLecture(1, $libelle, "0.Retour");
+                                    //         $this->setResponse(__FUNCTION__, $pourAfficher, "designationFacturePrestation_" . $numeroClient . "_{$ideff}_1");
+                                    //     } else {
+                                    //         $libelle = $forfait->affichage . "{CR}Merci de saisir le nombre de {$forfait->souscription_aff}";
+                                    //         $pourAfficher = new EtatLecture(1, $libelle, "0.Retour");
+                                    //         $this->setResponse(__FUNCTION__, $pourAfficher, "designationPrestation_" . $numeroClient . "_{$ideff}_1");
+                                    //     }
+                                    // } else {
+                                    //     $this->menuErreur();
+                                    // }
                                 } else {
                                     $this->menuErreur();
                                 }
@@ -706,11 +679,30 @@ class Central extends MENU
     }
 
 
+
+    public function getMenuRedirectionGenerationFacture(Service $service, $forfait, $ideff, $numeroClient)
+    {
+        if ($forfait != null) {
+
+            if ($forfait->tarif == "devis") {
+                $libelle = $service->libelle . "{CR}" . $forfait->affichage . "{CR}Merci de saisir le montant de la prestation";
+                $pourAfficher = new EtatLecture(1, $libelle, "0.Retour");
+                $this->setResponse(__FUNCTION__, $pourAfficher, "designationFacturePrestation_" . $numeroClient . "_{$ideff}_1");
+            } else {
+                $libelle = $forfait->affichage . "{CR}Merci de saisir le nombre de {$forfait->souscription_aff}";
+                $pourAfficher = new EtatLecture(1, $libelle, "0.Retour");
+                $this->setResponse(__FUNCTION__, $pourAfficher, "designationPrestation_" . $numeroClient . "_{$ideff}_1");
+            }
+        } else {
+            $this->menuErreur();
+        }
+    }
+
     public function getMenuDesignationPrestation()
     {
         //$this->LOG(__FUNCTION__."  Executing Main menu rule");
         $etal = $this->getEtatLecture();
-        print_r($etal);
+        // print_r($etal);
         $page = $etal->page;
         $code_service = $etal->id_consultation;
         $numeroClient = $etal->context;
@@ -744,12 +736,13 @@ class Central extends MENU
                             $service->montant = $montant;
                             $designation = trim($this->content);
 
-                            $libelle = "Merci de confirmer la prestation {CR}{$service->libelle} ({$forfait->affichage}){CR}Details: {$designation} {$forfait->souscription_aff}{CR}Total : {$montant} FCFA";
-                            $pourAfficher = new EtatLecture(1, $libelle, "1. OUI{CR}2. NON {CR}0.Retour");
+                            // $libelle = "{$service->libelle}{CR}Merci de confirmer la prestation {CR}({$forfait->affichage}){CR}Details: {$designation} {$forfait->souscription_aff}{CR}Total : {$montant} FCFA";
+                            // $pourAfficher = new EtatLecture(1, $libelle, "1. OUI{CR}2. NON {CR}0.Retour");
 
-                            $next = "getConfirmationDesignationPrestation_" . $numeroClient . "_{$service->service_id}_{$service->montant}_{$designation}_" . $nombre;
-                            //"getConfirmationDesignationPrestation_" . $numeroClient . "_{$service->service_id}_{$service->montant}_1"
-                            $this->setResponse(__FUNCTION__, $pourAfficher, $next);
+                            // $next = "getConfirmationDesignationPrestation_" . $numeroClient . "_{$service->service_id}_{$service->montant}_{$designation}_" . $nombre;
+                            // $this->setResponse(__FUNCTION__, $pourAfficher, $next);
+
+                            $this->getMenuConfirmationGenerationFacture($service, $forfait, $numeroClient, $montant);
                         } else {
                             $libelle = $forfait->affichage . "{CR}Merci de saisir le nombre de {$forfait->souscription_aff}";
                             $pourAfficher = new EtatLecture(1, $libelle, "0. Retour");
@@ -770,8 +763,9 @@ class Central extends MENU
     {
         //$this->LOG(__FUNCTION__."  Executing Main menu rule");
         $etal = $this->getEtatLecture();
-        print_r($etal);
-        //getConfirmationDesignationPrestation_1111111111111111_4_5000_2_1
+
+        //getConfirmationDesignationPrestation_5555555555_2_50000_50000_devis
+        //getConfirmationDesignationPrestation_2222222222_4_15000_15000_5000
 
         $numeroClient = $etal->present;
         $designation = $etal->id_consultation;
@@ -784,14 +778,15 @@ class Central extends MENU
             $forfait = $this->retourneForfait($service->service_id, "id_service");
             if ($forfait != null) {
 
-                $montant = $forfait->tarif * $nombre;
+                //$montant = $forfait->tarif * $nombre;
                 $service->montant = $montant;
-
                 switch ($this->content) {
                     case '0':
-                        $libelle = $forfait->affichage . "{CR}Merci de saisir le nombre de {$forfait->souscription_aff}";
-                        $pourAfficher = new EtatLecture(1, $libelle, "0. Retour");
-                        $this->setResponse(__FUNCTION__, $pourAfficher, "designationPrestation_" . $numeroClient . "_{$service->service_id}_1");
+                        // $libelle = $forfait->affichage . "{CR}Merci de saisir le nombre de {$forfait->souscription_aff}";
+                        // $pourAfficher = new EtatLecture(1, $libelle, "0. Retour");
+                        // $this->setResponse(__FUNCTION__, $pourAfficher, "designationPrestation_" . $numeroClient . "_{$service->service_id}_1");
+
+                        $this->getMenuRedirectionGenerationFacture($service, $forfait, $code_service, $numeroClient);
                         break;
                     case '1':
                         $this->genererFacturePrestation($service, $forfait, $numeroClient, $designation, $nombre);
@@ -801,11 +796,12 @@ class Central extends MENU
                         break;
                     default:
 
-                        $libelle = "Merci de confirmer la prestation {CR}{$service->libelle} ({$forfait->affichage}){CR}Details: {$designation} {$forfait->souscription_aff}{CR}Total : {$montant} FCFA";
-                        $pourAfficher = new EtatLecture(1, $libelle, "1. OUI{CR}2. NON {CR}0.Retour");
+                        // $libelle = "{$service->libelle}{CR}Merci de confirmer la prestation {CR}({$forfait->affichage}){CR}Details: {$designation} {$forfait->souscription_aff}{CR}Total : {$montant} FCFA";
+                        // $pourAfficher = new EtatLecture(1, $libelle, "1. OUI{CR}2. NON {CR}0.Retour");
 
-                        $next = "getConfirmationDesignationPrestation_" . $numeroClient . "_{$service->service_id}_{$service->montant}_{$designation}_" . $nombre;
-                        $this->setResponse(__FUNCTION__, $pourAfficher, $next);
+                        // $next = "getConfirmationDesignationPrestation_" . $numeroClient . "_{$service->service_id}_{$service->montant}_{$designation}_" . $nombre;
+                        // $this->setResponse(__FUNCTION__, $pourAfficher, $next);
+                        $this->getMenuConfirmationGenerationFacture($service, $forfait, $numeroClient, $montant);
                         break;
                 }
             } else {
@@ -819,14 +815,123 @@ class Central extends MENU
 
     public function genererFacturePrestation(Service $service, $forfait, $numeroClient, $designation, $nombre)
     {
-        
+        //inserer facture et notifier le client
 
-    //inserer facture et notifier le client
+        if ($this->agent != null) {
+            $agent_id = $this->agent->agent_id;
+            $plus = " AND agent_id='" . $agent_id . "' ";
+        } else {
+            $agent_id = null;
+            $plus = "";
+        }
 
-    $sqlQuery = "INSERT INTO facture (id_client, id_service, montant, designation, nombre) VALUES ({$numeroClient}, {$service->service_id}, {$service->montant}, '{$designation}', {$nombre})";
-    //$status = $this->db->db_executeQuery($sqlQuery);
-    $this->menuFinParcours();
+        $resultat = $this->retourneReservationService(" AND telephone='" . $numeroClient . "' AND service_id='" . $service->service_id . "' AND statut='1'  " . $plus);
 
+        if ($resultat != null) {
+            $reservation = $resultat[0];
+            //print_r($reservation);
+
+            $reservation_id = $reservation->reservation_id;
+        } else {
+            $reservation_id = null;
+        }
+
+        $prefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $service->libelle), 0, 2));
+        // $reference_facture = 'F' . $service->code_service . "-" . date('HisYmd') . rand(10, 99);
+        $reference_facture = strtoupper(
+            $prefix .
+                substr(md5(
+                    $service->libelle .
+                        $service->code_service .
+                        microtime()
+                ), 0, 6)
+        );
+        // $specialite = $forfait->specialite;
+        // $description = $forfait->description;
+        // $agent_id = $forfait->agent_id;
+        // $reservation_id = $forfait->reservation_id;
+
+        $numeroAgent = $this->telephone;
+
+        $sqlQuery = "INSERT INTO factures (numero_client, numero_agent, id_service, montant, designation, reservation_id,agent_id,reference,date_facture) VALUES (?,?,?,?,?,?,?,?,NOW())";
+        $params = array($numeroClient, $this->telephone, $service->service_id, $service->montant, $designation, $reservation_id, $agent_id, $reference_facture);
+        $status = $this->dbAcces->db_executeQuery($sqlQuery, $params);
+
+        $pourAfficher = new EtatLecture(1, "Felicitaion ! La facture du client a bien été genéré. Vous receverer les détails via SMS", "0. Retour");
+
+        $montantFormate = number_format($service->montant, 0, ',', ' ');
+        //$prixUnitaire = number_format($forfait->tarif, 0, ',', ' ');
+
+        $notificationFactureClient =
+            date('d/m/Y H:i') .
+            "{CR}Facture N. : {$reference_facture}" .
+            "{CR}Service : {$service->libelle}" .
+            // "{CR}Prix unitaire : {$prixUnitaire} FCFA" .
+            "{CR}Total : {$montantFormate} FCFA" .
+            "{CR}Agent : {$numeroAgent}";
+
+        $notificationFactureAgent =
+            date('d/m/Y H:i') .
+            "Facture N. : {$reference_facture}" .
+            "{CR}Service : {$service->libelle}" .
+            "{CR}Client : {$numeroClient}" .
+            "{CR}Total : {$montantFormate} FCFA";
+
+
+
+        $this->sms_envoi($numeroClient, $notificationFactureClient, "FACTURE", "FACTURE");
+        $this->sms_envoi($this->telephone, $notificationFactureAgent, "FACTURE", "FACTURE");
+        $this->setResponse(__FUNCTION__, $pourAfficher, "menu", "FB");
+    }
+
+
+    public function getMenuDesignationFacturePrestation()
+    {
+        //$this->LOG(__FUNCTION__."  Executing Main menu rule");
+        $etal = $this->getEtatLecture();
+        $page = $etal->page;
+        $code_service = $etal->id_consultation;
+        $numeroClient = $etal->context;
+        $libelle = $etal->renew;
+
+        $service = $this->retourneService($code_service);
+        if ($service != null) {
+            $forfait = $this->retourneForfait($service->service_id, "id_service");
+            if ($forfait != null) {
+                switch ($this->content) {
+                    case '0':
+                        $pourAfficher = $this->menuUssd->menuGroupe(1, 1, null, "Saisir le service");
+                        $this->setResponse(__FUNCTION__, $pourAfficher, "getGenererFactureService_" . $numeroClient . "_1_1");
+                        break;
+                    default:
+                        if (isset($this->content) && !empty($this->content) && ctype_digit($this->content)) {
+
+                            $montant =  trim($this->content);
+                            $service->montant = $montant;
+                            $this->getMenuConfirmationGenerationFacture($service, $forfait, $numeroClient, $montant);
+                        } else {
+                            $libelle = $forfait->affichage . "{CR}Merci de saisir le nombre de {$forfait->souscription_aff}";
+                            $pourAfficher = new EtatLecture(1, $libelle, "0. Retour");
+                            $this->setResponse(__FUNCTION__, $pourAfficher, "designationPrestation_" . $numeroClient . "_{$service->service_id}_1");
+                        }
+                        break;
+                }
+            } else {
+                $this->menuErreur();
+            }
+        } else {
+            $this->menuErreur();
+        }
+    }
+
+    function getMenuConfirmationGenerationFacture(Service $service, $forfait, $numeroClient, $montant)
+    {
+
+        $libelle = "{$service->libelle}{CR}Merci de confirmer la prestation {CR}Details: {$forfait->affichage}{CR}Total : {$montant} FCFA";
+        $pourAfficher = new EtatLecture(1, $libelle, "1. OUI{CR}2. NON {CR}0.Retour");
+
+        $next = "getConfirmationDesignationPrestation_" . $numeroClient . "_{$service->code_service}_{$service->montant}_{$montant}_" . $forfait->tarif;
+        $this->setResponse(__FUNCTION__, $pourAfficher, $next);
     }
 
     public function getGroupement()
@@ -880,7 +985,7 @@ class Central extends MENU
                         } else {
                             // debug("zzzzzzzzzzzz");
                             $afficho = $this->menuUssd->menuGroupe($ideff, 1, $params2);
-                            // print_r($afficho);
+                            print_r($afficho);
                             if ($afficho->present > 1) {
                                 $this->setResponse($afficho, $afficho, "debut_" . $id_context . "_{$ideff}_1");
                             } elseif ($afficho->present == 1) {
@@ -907,7 +1012,7 @@ class Central extends MENU
                                 //     $this->setResponse($afficho, $afficho, $libelle . "_" . $id_context . "_{$next}_1");
                                 // }
                             } else {
-                                print "xxxxxxxx";
+                                print "xxxxxxxx" . $ideff . "xxxxxxxxxxxxx";
                                 $this->flowContinueMain($ideff, $id_context);
                             }
                         }
@@ -918,4 +1023,102 @@ class Central extends MENU
                 break;
         }
     }
+
+
+    public function getMenuAfficherFacture($page = 1)
+    {
+
+        $pourAfficher = $this->listFacture($page);
+
+        if ($pourAfficher->present > 0) {
+
+            $this->setResponse(__function__, $pourAfficher, 'listFacture_' . $pourAfficher->page);
+        } else {
+            $message = $this->messager->auncunFacture();
+            $this->setResponse(__function__, $message, 'menu');
+        }
+
+        // $pourAfficher = new EtatLecture(1, "Payer une Facture{CR}Entrer le numero de la facture : ", "0.Retour");
+        // $this->setResponse(__FUNCTION__, $pourAfficher, "payerFacture");
+    }
+
+    public function getMenuListFacture()
+    {
+
+        $etal = $this->getEtatLecture();
+        print_r($etal);
+        $next =  $this->next;
+        $page = $this->getEtatLecture($next)->page;
+
+        switch (strtoupper($this->content)) {
+            case NOMBRE_SUIVANT:
+                $this->getMenuAfficherFacture($page + 1);
+                break;
+            case 0:
+                if ($page == 1) {
+                    $this->flowContinueMain();
+                } else {
+                    $this->getMenuAfficherFacture($page - 1);
+                }
+                break;
+
+            default:
+                if (ctype_digit(trim($this->content))) {
+                    $stringRequete = "SELECT f.reference  AS libelle 
+         FROM services s INNER JOIN factures f ON s.service_id = f.id_service 
+         WHERE f.numero_client = '" . $this->telephone . "' AND f.statut = 'non_regle' order by f.facture_id";
+
+                    // $stringRequete = "select code_service from " . Config::TBL_SERVICES . " where " . Config::TBL_SERVICES . ".keyword in (select subscription.level from subscription where subscription.telephone='{$this->fonction->Request->soa}' and subscription.active!='NO' group by level) and " . Config::TBL_SERVICES . ".statut='YES'  order by id_service";
+                    $id = $this->fonction->retourneIdEffectifR($this->content, $stringRequete);
+                    if ($id != null) {
+
+                        print "xxxxxxxx" . $id . "xxxxxxxxxxxxx";
+                        $facture = $this->retourneFacture(" and f.reference = '" . $id . "'");
+                        if ($facture != null) {
+                            print_r($facture);
+                        }
+                        // $service = $this->fonction->retourneService($id);
+                        // if ($service != null) {
+                        //     $this->fonction->actualiseDesabonnement($service->keyword);
+                        //     $notificationSMS = Message::desabonnOK($service)->title_sans_caractere;
+                        //     $this->fonction->sms_envoi($this->fonction->Request->soa, $notificationSMS, __FUNCTION__);
+
+                        //     $message = Message::desabonnOK($service)->contenuTout_sans_caractere();
+                        //     $this->setResponse(__function__, $message, 'menu');
+                        // } else {
+                        //     $this->menuErreur();
+                        // }
+                    } else {
+                        $this->getMenuAfficherFacture($page);
+                    }
+                } else {
+                    $this->getMenuAfficherFacture($page);
+                }
+                break;
+        }
+    }
+    public function getMenuInvitPayerFacture()
+    {
+
+        switch ($this->content) {
+            case '0':
+                $this->flowContinueMain();
+                break;
+            default:
+
+                print_r($this->content);
+                $content = trim($this->content);
+                $result =  $this->retourneFacture(" AND  reference='" . $content . "'  ");
+                if ($result != null) {
+                    print_r($result);
+                    // $this->setResponse($result, $result, "invit_payer_facture");
+                } else {
+                    $pourAfficher = new EtatLecture(1, "Desole, cette facture n'existe pas{CR}Entrer le numero de la facture : ", "0.Retour");
+                    $this->setResponse(__FUNCTION__, $pourAfficher, "payerFacture");
+                }
+                break;
+        }
+    }
+
+    public function getFactureEnAttente() {}
 }

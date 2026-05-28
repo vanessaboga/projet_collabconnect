@@ -40,19 +40,17 @@ class MenUssd
                 else
                     $principal = false;
             }
+        } else {
+            $principal = true;
+            //$title = $title;
         }
-       else {
-           $principal = false;
-           //$title = $title;
-       }
 
         $requete = "select libelle from " . $this->table_menu . " where precedent=$id_groupe and is_active='1' $parametre order by position ASC";
-        $res = $this->db->retourneMenuDynamique($requete, $page, "libelle", $principal, 4);
+        $res = $this->db->retourneMenuDynamique($requete, $page, "libelle", $principal, 5);
 
         $res->title = $title;
         $res->context = $groupement;
-        if ($id_groupe != 0)
-            $res->contenu .= "{CR}0. Retour";
+        if ($id_groupe != 0) $res->contenu .= "{CR}0. Retour";
         $res->rechargement();
         return $res;
     }

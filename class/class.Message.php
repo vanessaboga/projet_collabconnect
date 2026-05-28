@@ -161,9 +161,11 @@ class Message
     }
 
 
-    public function auncunAbonnement($serviceName = "YAS Infos & Detente")
+    public function auncunFacture(Service $service = NULL)
     {
-        return new EtatLecture(1, "Desole! tu n'as aucune souscription active au service {$serviceName}.", "00. Accueil");
+        if ($service != NULL) $libelle = $service->libelle;
+        else $libelle = "";
+        return new EtatLecture(1, "Desole! tu n'as aucune facture au service {$libelle}.", "00. Accueil");
     }
 
     public static function auncunAbonnementRubrique(Service $service)

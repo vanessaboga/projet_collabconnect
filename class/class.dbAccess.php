@@ -97,7 +97,7 @@ class dbAccess
 
     function selectOBJ($sqlQuery)
     {
-        // echo $sqlQuery.PHP_EOL;
+         echo $sqlQuery.PHP_EOL;
         try {
             $recipesStatement = $this->connexion->prepare($sqlQuery);
             $recipesStatement->execute();
@@ -203,7 +203,7 @@ class dbAccess
         $limit = $taillePage + 1;
         $requete2 = $requete . " limit $limit offset $offset"; //
 
-        // echo $requete2;
+        
         $tab = $this->selectArray($requete2);
         //print_r($tab);
         //si on a rien on diminue la page jusqua la bonne*****************

@@ -84,7 +84,7 @@ class Fonction extends Request
         $find = "*";
         $champ = ($champ == null ? 'code_service' : 'keyword');
         $where = " $champ='$code_service'";
-        $sqlQuery = "SELECT " . $find . " FROM " . $table_service . " WHERE " . $where;
+       echo $sqlQuery = "SELECT " . $find . " FROM " . $table_service . " WHERE " . $where;
         if ($ligne = $this->dbAcces->select($sqlQuery)) {
             return new Service($ligne[0]);
         } else
@@ -139,21 +139,61 @@ class Fonction extends Request
             return null;
     }
 
-    public function retournePharmacie($keyword, $champ = null, $params = null)
+    public function retourneReservationService($params = null)
     {
-        $keyword = addslashes($keyword);
-        if ($champ == NULL)
-            $champ = 'keyword';
-        if ($params != null) {
-            $where = " $params AND ( $champ='$keyword' or $champ like '$keyword;%' or $champ like '%;$keyword;%' or $champ like '%;$keyword' )  LIMIT 1";
-        } else
-            $where = "  $champ='$keyword' or $champ like '$keyword;%' or $champ like '%;$keyword;%' or $champ like '%;$keyword'  LIMIT 1";
-        $find = "*";
-        $sqlQuery = "SELECT " . $find . " FROM " . Config::TBL_SERVICES . " WHERE " . $where;
-        if ($ligne = $this->dbAcces->selectArray($sqlQuery)) {
-            return new Service($ligne[0]);
+        $sqlQuery = "  SELECT *  FROM reservations  WHERE 1=1 $params  ORDER BY reservation_id  LIMIT 1  ";
+
+        if ($resultat = $this->dbAcces->selectOBJ($sqlQuery)) {
+            return $resultat;
         } else
             return null;
+    }
+
+
+    public function retourneFacture($params = null)
+    {
+
+    //SELECT f.reference  AS libelle 
+        //  FROM services s INNER JOIN factures f ON s.service_id = f.id_service 
+        $sqlQuery = "  SELECT f.* , s.libelle , s.keyword  FROM factures f INNER JOIN services s ON f.id_service = s.service_id  WHERE 1=1 $params ORDER BY  f.date_facture LIMIT 1  ";
+        if ($resultat = $this->dbAcces->selectOBJ($sqlQuery)) {
+            return $resultat[0];
+        } else
+            return null;
+    }
+
+    public function listFacture($page = 1, $telephone = NULL)
+    {
+
+        if ($telephone == NULL) $telephone = $this->telephone;
+
+        /*
+        $stringRequete = "select libelle from " . Config::TBL_SERVICES . " where " . Config::TBL_SERVICES . ".keyword in (
+        select subscription.level from subscription where telephone='" . $telephone . "' and subscription.active!='NO' group by level) and " . Config::TBL_SERVICES . ".statut='YES' group by " . Config::TBL_SERVICES . ".keyword order by id_service";
+        */
+        // echo $stringRequete = "SELECT s.libelle FROM services s INNER JOIN factures f ON s.id_service = f.id_service 
+        //  WHERE f.numero_client = '" . $telephone . "'   AND f.statut = 'non_regle'   GROUP BY s.id_service ORDER BY s.id_service;";
+
+        // $stringRequete = "SELECT CONCAT( s.libelle, ' | Montant : ', FORMAT(f.montant, 0), ' FCFA | Ref : ', f.reference ) AS libelle 
+        //  FROM services s INNER JOIN factures f ON s.service_id = f.id_service 
+        //  WHERE f.numero_client = '" . $telephone . "' AND f.statut = 'non_regle';";
+
+        // $stringRequete = "SELECT CONCAT( s.libelle, '|', REPLACE(FORMAT(f.montant, 0), ',', ' '), ' FCFA| Ref : ', f.reference ) AS libelle 
+        //  FROM services s INNER JOIN factures f ON s.service_id = f.id_service 
+        //  WHERE f.numero_client = '" . $telephone . "' AND f.statut = 'non_regle'";
+
+        $stringRequete = "SELECT f.reference  AS libelle 
+         FROM services s INNER JOIN factures f ON s.service_id = f.id_service 
+         WHERE f.numero_client = '" . $telephone . "' AND f.statut = 'non_regle' order by f.facture_id";
+
+        $resultat =  $this->dbAcces->retourneMenuDynamique($stringRequete, $page, "0", 4);
+
+        $resultat->title = "selectionnez la facture svp!";
+        // if ($resultat->present > 1)  $resultat->contenu .= "{CR}99. Autres";
+        // else 
+        $resultat->contenu .= "{CR}{CR}0. Retour";
+        $resultat->rechargement();
+        return $resultat;
     }
 
 
@@ -295,7 +335,7 @@ class Fonction extends Request
     public function sms_envoi($telephone, $message, $type = null, $sender = null, $type2 = "MT")
     {
         $message = str_replace('{CR}', PHP_EOL, $message);
-        $telephone = Config::$COUNTRY_CODE . substr($telephone, Config::$MSISDN_WITHOUT_COUNTRY_CODE_LENGTH);
+        // $telephone = Config::$COUNTRY_CODE . substr($telephone, Config::$MSISDN_WITHOUT_COUNTRY_CODE_LENGTH);
 
         $affiche = "__________ debut SMS ________________" . PHP_EOL . "DA=$sender" . PHP_EOL . ".SMS envoye a : " . $telephone . PHP_EOL . "message : " . $message . PHP_EOL . "taille sms = " . strlen($message) . PHP_EOL . " __________ fin SMS __________________";
         print $affiche . PHP_EOL;

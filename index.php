@@ -52,9 +52,13 @@ if (isset($next) && ($next) != null && $next->diff < 60 && $next->next != '' && 
         $service->getMenuDesignationPrestation();
     } elseif ($next !== '' && preg_match('/^getConfirmationDesignationPrestation_/i', $next)) {
         $service->getMenuConfirmationDesignationPrestation();
+    } elseif ($next !== '' && preg_match('/^designationFacturePrestation_/i', $next)) {
+        $service->getMenuDesignationFacturePrestation();
+    } elseif ($next !== '' && preg_match('/^payerFacture/i', $next)) {
+        $service->getMenuInvitPayerFacture();
+    } elseif ($next !== '' && preg_match('/^listFacture_/i', $next)) {
+        $service->getMenuListFacture();
     }
-
-    // getConfirmationDesignationPrestation_
     else {
         $service->flowContinueMain();
     }
