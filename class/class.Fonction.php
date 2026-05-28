@@ -1,0 +1,680 @@
+<?php
+
+class Fonction extends Request
+{
+
+    public $Request;
+    public $dbAcces;
+    public $fonction;
+    var $init;
+
+    var $callerId = null;
+    var $statut_factu = 'CHARGING_SUCCESS';
+
+    public $canal;
+    public $link;
+
+    public function __construct($request, $canal, $link)
+    {
+        parent::__construct($request);
+
+        $this->canal = $canal;
+        $this->dbAcces = $link;
+    }
+
+
+
+
+
+    public function getLastNext()
+    {
+        $find = " Select * ,timestampdiff(second,date,'" . $this->maintenant . "') as diff,timestampdiff(second,date_sms,'" . $this->maintenant . "') as diff_sms FROM next_table WHERE numero = '" . $this->soa . "'";
+
+        $result = $this->dbAcces->select($find);
+        if ($result != null) {
+            //$this->logger->handler(__class__.'.'.__function__, "erreur lors de la vérification du statut du numéro");
+            return new Next($result[0]);
+        } else {
+            $array['id'] = "";
+            $array['next'] = $this->next;
+            $array['date'] = "";
+            $array['numero'] = $this->soa;
+            $array['diff'] = 0;
+            return new Next($array);
+        }
+    }
+
+
+
+    //function recuperant l'etat de lecture de l'information***********************
+    public function getEtatLecture()
+    {
+        $next = $this->getLastNext();
+        $tableau = explode("_", $next->next);
+        $etat = new EtatLecture();
+        $etat->page = $tableau[count($tableau) - 1];
+        $etat->id_consultation = isset($tableau[count($tableau) - 2]) ? $tableau[count($tableau) - 2] : null;
+        $etat->context = isset($tableau[count($tableau) - 3]) ? $tableau[count($tableau) - 3] : null;
+        $etat->renew = isset($tableau[count($tableau) - 4]) ? $tableau[count($tableau) - 4] : null;
+        $etat->present = isset($tableau[count($tableau) - 5]) ? $tableau[count($tableau) - 5] : null;
+        return $etat;
+    }
+
+
+    public function retourneServiceK($keyword, $champ = null)
+    {
+        $keyword = addslashes($keyword);
+        if ($champ == NULL)
+            $champ = 'keyword';
+
+        //$champ = ($champ == null ? 'keyword' : 'ukeyword');
+        //$champ = ($champ == null ? 'keyword' : 'ukeyword');
+        $where = " $champ='$keyword' or $champ like '$keyword;%' or $champ like '%;$keyword;%' or $champ like '%;$keyword'  LIMIT 1";
+        $find = "*";
+        $sqlQuery = "SELECT " . $find . " FROM " . Config::TBL_SERVICES . " WHERE " . $where;
+        if ($ligne = $this->dbAcces->select($sqlQuery)) {
+            return new Service($ligne[0]);
+        } else
+            return null;
+    }
+
+    public function retourneService($code_service, $champ = null, $table_service = "services")
+    {
+        $code_service = (int) $code_service;
+        $find = "*";
+        $champ = ($champ == null ? 'code_service' : 'keyword');
+        $where = " $champ='$code_service'";
+        $sqlQuery = "SELECT " . $find . " FROM " . $table_service . " WHERE " . $where;
+        if ($ligne = $this->dbAcces->select($sqlQuery)) {
+            return new Service($ligne[0]);
+        } else
+            return null;
+    }
+
+
+
+
+    public function retourneAgent($where = null)
+    {
+        if ($where == null) {
+            $where = " AND telephone='" . $this->telephone . "'";
+        }
+
+        $sqlQuery = "SELECT * FROM agents WHERE 1=1 $where";
+        $resultat = $this->dbAcces->selectOBJ($sqlQuery);
+        if ($resultat != null) {
+            return $resultat[0];
+        } else
+            return null;
+    }
+
+    public function retourneIdEffectifR($id, $requete)
+    {
+        //if ($requete == null) $requete = $stringRequete;
+        if (dbAccess::estEntier(NOMBRE_SUIVANT, 1) and $id > NOMBRE_SUIVANT)
+            $id--;
+
+        $requete .= " limit 1 offset " . ($id - 1);
+        $tab = $this->dbAcces->selectArray($requete);
+        if ($tab != null)
+            return $tab[0][0];
+        return null;
+    }
+
+
+    public function retourneForfait($keyword = null, $champ = null)
+    {
+        $find = "*";
+        if ($champ == null)
+            $champ = 'souscription';
+        //
+        if ($keyword == null)
+            $where = " WHERE is_active='1'  LIMIT 1 ";
+        else
+            $where = " WHERE $champ='$keyword'";
+        $sqlQuery = "SELECT " . $find . " FROM forfait " . $where;
+        if ($ligne = $this->dbAcces->selectOBJ($sqlQuery)) {
+            return $ligne[0];
+        } else
+            return null;
+    }
+
+    public function retournePharmacie($keyword, $champ = null, $params = null)
+    {
+        $keyword = addslashes($keyword);
+        if ($champ == NULL)
+            $champ = 'keyword';
+        if ($params != null) {
+            $where = " $params AND ( $champ='$keyword' or $champ like '$keyword;%' or $champ like '%;$keyword;%' or $champ like '%;$keyword' )  LIMIT 1";
+        } else
+            $where = "  $champ='$keyword' or $champ like '$keyword;%' or $champ like '%;$keyword;%' or $champ like '%;$keyword'  LIMIT 1";
+        $find = "*";
+        $sqlQuery = "SELECT " . $find . " FROM " . Config::TBL_SERVICES . " WHERE " . $where;
+        if ($ligne = $this->dbAcces->selectArray($sqlQuery)) {
+            return new Service($ligne[0]);
+        } else
+            return null;
+    }
+
+
+
+
+    public function getMenuBundleService(Service $service)
+    {
+        $text = "";
+        $where = " WHERE is_active='1' AND id_service='" . $service->id_projet . "' ORDER BY id ASC ";
+        $sqlQuery = "SELECT * FROM forfait " . $where;
+        if ($ligne = $this->dbAcces->select($sqlQuery)) {
+
+            for ($i = 0; $i <= count($ligne) - 1; $i++) {
+
+                $bundle = new Bundle($ligne[$i]);
+                $text .= $i + 1 . '. ' . $bundle->souscription . "(" . $bundle->tarif . " F)" . '{CR}';
+            }
+            return substr($text, 0, strlen($text) - 4);
+        } else
+            return null;
+    }
+
+    public static function retourneBundleByNISSA(Service $service, $souscription = '')
+    {
+        switch ($souscription) {
+            case Config::FORFAIT_SEMAINE:
+            case Config::INT_SEMAINE:
+                return new BundleNISSA($service, Config::FORFAIT_SEMAINE, Config::SEMAINE_AFF, Config::TARIF_ABONNEMENT_SEMAINE, Config::INT_SEMAINE, "07 jours", "PRESSEMOBILEWEEKLY", "Subscription Purchase");
+                break;
+            case Config::FORFAIT_MOIS:
+            case Config::INT_MOIS:
+                return new BundleNISSA($service, Config::FORFAIT_MOIS, Config::MOIS_AFF, Config::TARIF_ABONNEMENT_MOIS, Config::INT_MOIS, "30 jours", "PRESSEMOBILEMONTHLY", "Subscription Purchase");
+                break;
+            case Config::FORFAIT_JOUR:
+            case Config::INT_JOUR:
+                return new BundleNISSA($service, Config::FORFAIT_JOUR, Config::JOUR_AFF, Config::TARIF_ABONNEMENT_JOUR, Config::INT_JOUR, "1 jour");
+                break;
+            case Config::STRING_ILLIMIX:
+            case Config::INT_ILLIMIX:
+                return new BundleNISSA($service, Config::STRING_ILLIMIX, Config::ILLIMIX_AFF, $service->tarif_consultation, Config::INT_ILLIMIX, $service->tarif_consultation . "F/SMS");
+                break;
+            default:
+                return new BundleNISSA($service, 'CONSULTATION', '', Config::TARIF_CONSULTATION, 0, "", "PRESSEMOBILECONTENT", "Content Purchase");
+                break;
+        }
+    }
+
+    public function traceFacturationRubrique($amount, $type, $rubrique, $id_service, $service, $plateforme, $status, $telephone = null, $date = null)
+    {
+        if ($telephone == NULL)
+            $telephone = $this->soa;
+        $plateforme = $this->canal;
+
+        if ($date == null)
+            $date = @date("Y-m-d H:i:s");
+
+        $sqlQuery = " INSERT INTO  billinglist (`date`,`telephone`, `amount`, `returnCode`, `rubrique`, `plateforme`, `status`, `type`,`id_service`,`service`) VALUES (?,?,?,?,?,?,?,?,?,?)";
+        $insertData2 = array(
+            $date,
+            $telephone,
+            $amount,
+            $this->statut_factu,
+            $rubrique,
+            $plateforme,
+            $status,
+            $type,
+            $id_service,
+            $service
+        );
+        $status = $this->dbAcces->db_executeQuery($sqlQuery, $insertData2);
+        return $status;
+    }
+
+
+    public function facturationEffective($numero, Bundle $bundle, $transaction_code = null)
+    {
+        if ($numero == NULL)
+            $numero = $this->Request->soa;
+
+        $description = "revamp";
+        $description = "revamp-stk";
+        $amount = trim($bundle->tarif);
+        #$amount =1;
+        if ($transaction_code == null)
+            $transaction_code = $description;
+
+        #$transaction_code="GNT";
+        #$url = "http://localhost/togo.togocm.billing/charge.php?msisdn={msisdn}&amount=100&service=VotingHeroes&operation=debit&environment=prod";
+        #$url = "http://localhost:80/togo.togocom.billing/charge.php?msisdn=$numero&amount=$amount&service=$description&operation=debit&environment=prod";
+        $url = "http://localhost/togo.togocom.billingv2/charge.php?msisdn=$numero&amount=$amount&service=$transaction_code&environment=prod";
+        //echo $url;
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $reply = trim(curl_exec($ch));
+        curl_close($ch);
+
+        #$this->statut_factu = json_encode($reply);
+        if ($reply == "CHARGING_SUCCESS") {
+
+            $this->statut_factu = "CHARGING_SUCCESS";
+            return true;
+        } else {
+            $this->statut_factu = "CHARGING_FAILED";
+            return false;
+        }
+    }
+
+    public function facturationEffectiveByNISSA($numero, $tarif, $transaction_code = null)
+    {
+
+        $amount = intval($tarif);
+        if ($transaction_code == null)
+            $transaction_code = "GNT";
+        $numero = urlencode("228" . substr($numero, -8));
+        $transaction_code = urlencode($transaction_code);
+
+        return true;
+        $url = "http://localhost/togo.togocom.billingv2/charge.php?msisdn=$numero&amount=$amount&service=$transaction_code&environment=prod";
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+            CURLOPT_CONNECTTIMEOUT => 5
+        ]);
+        $reply = curl_exec($ch);
+        print_r($reply);
+        if ($reply === false) {
+            curl_close($ch);
+            return false;
+        }
+        curl_close($ch);
+        return (strpos($reply, "CHARGING_SUCCESS") !== false);
+    }
+
+
+    //function qui envoie les messages aux abonnés :::::::::::::::::::::
+    public function sms_envoi($telephone, $message, $type = null, $sender = null, $type2 = "MT")
+    {
+        $message = str_replace('{CR}', PHP_EOL, $message);
+        $telephone = Config::$COUNTRY_CODE . substr($telephone, Config::$MSISDN_WITHOUT_COUNTRY_CODE_LENGTH);
+
+        $affiche = "__________ debut SMS ________________" . PHP_EOL . "DA=$sender" . PHP_EOL . ".SMS envoye a : " . $telephone . PHP_EOL . "message : " . $message . PHP_EOL . "taille sms = " . strlen($message) . PHP_EOL . " __________ fin SMS __________________";
+        print $affiche . PHP_EOL;
+        //return true;
+
+        // if ($this->canal != Config::PLATEFORM_AUTO)
+        //     $smpp = $this->Request->setting->smscId;
+        // else
+        //     $smpp = $this->Request->smscid;
+
+        // if ($sender == null)
+        //     $sender = $this->Request->setting->shortcodeSMS;
+        // #$sender = trim(utf8_decode("INFOS & DETENTE"));	
+
+        // $message = trim(str_replace('{CR}', PHP_EOL, urlencode(utf8_decode($message))));
+        // $url = "http://localhost:13013/cgi-bin/sendsms?username=gnt&password=globalnewtech&smsc=$smpp&to=" . $telephone . "&text=" . $message . "&from=" . urlencode($sender);
+        // if ($type == Config::TYPE_FLASH)
+        //     $url .= "&mclass=0&alt-dcs=1";
+        // $ch = curl_init();
+        // curl_setopt($ch, CURLOPT_URL, $url);
+        // curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        // $reply = trim(curl_exec($ch));
+        // curl_close($ch);
+
+        // $to_log = "date = " . @date('Y-m-d H:i:s') . " | telephone = " . $telephone . " | message = " . $message . " | sender = $sender | smsci = $smpp |  resultat  ==> " . $reply . " | url call =>" . $url;
+        // //@file_put_contents("/var/www/html/MoovKiosqueService/SERVICES_STK/classes/logs/envoi_sms/log_" . @date('Y-m-d') . '.log', $to_log . PHP_EOL, FILE_APPEND);
+        // #echo "message : $message\nmessage envoyé à $telephone\n";
+        // return $reply;
+    }
+
+    public function logSendMessage($message, $smpp, $type, $status, $contenuId = null, $plateforme = null, $telephone = null, $date = null)
+    {
+        if ($telephone == NULL)
+            $telephone = $this->Request->soa;
+        $plateforme = $this->Request->canal;
+
+        if ($date == null)
+            $date = @date("Y-m-d H:i:s");
+
+        $sqlQuery = " INSERT INTO  sendmessage (`date`,`telephone`, `contenuId`, `message`, `smpp`, `plateforme`, `status`, `type`) VALUES (?,?,?,?,?,?,?,?)";
+        $insertData2 = array($date, $telephone, $contenuId, $message, $smpp, $plateforme, $status, $type);
+        $status = $this->dbAcces->db_executeQuery($sqlQuery, $insertData2);
+        return $status;
+    }
+
+
+    public function retourneListeChaine($table, $champ)
+    {
+        $tableauTri = array();
+        $find = $champ;
+        $chaine = "";
+
+        $i = 0;
+        $sqlQuery = "SELECT " . $champ . " FROM " . $table . " ";
+        if ($ligne = $this->dbAcces->selectArray($sqlQuery)) {
+
+            //print_r($ligne);
+            while ($i < count($ligne) and count($ligne) > 0) {
+                if ($ligne[$i][$champ] != '') {
+                    $tri = str_replace(";", "|", $ligne[$i][$champ]);
+                    $chaine = $chaine . $tri . "|";
+                }
+                $i++;
+            }
+            return substr($chaine, 0, strlen($chaine) - 1);
+        } else
+            return null;
+    }
+
+
+    public function getNext($type = 0, $next_w = NEXT_WRITING)
+    {
+
+        $tableauTri = array("where" => "numero='" . $this->telephone . "'", "limit" => "1", "order" => "id");
+        $maintenant = @date("Y-m-d H:i:s");
+        $find = "*,timestampdiff(second,date,'$maintenant') as diff,timestampdiff(second,date_sms,'$maintenant') as diff_sms";
+
+        if ($type == 1) {
+            //$infoBD=$this->findRecord($find,$tableauTri,"next_table");
+            $infoBD = $this->dbAcces->querySelect($find, "next_table", $tableauTri);
+
+            if ($infoBD != null) {
+                return 1;
+            }
+            return 0;
+        } elseif ($next_w) {
+            //$infoBD=$this->findRecord($find,$tableauTri,"next_table");
+            $infoBD = $this->dbAcces->querySelect($find, "next_table", $tableauTri);
+
+            if ($infoBD != null) {
+                $ret = new next_table($infoBD[0]);
+                // print_r($ret);
+                if (NEXT_WRITING)
+                    $this->next = $ret->next;
+                return $ret;
+            } else {
+                $array['id'] = "";
+                $array['next'] = $this->next;
+                $array['date'] = "";
+                $array['numero'] = $this->telephone;
+                $array['diff'] = 0;
+                $array['next_sms'] = "menu";
+                $array['diff_sms'] = 0;
+                $n = new next_table($array);
+                return $n;
+            }
+        } else {
+            $array['id'] = "";
+            $array['next'] = $this->next;
+            $array['date'] = "";
+            $array['numero'] = $this->telephone;
+            $array['diff'] = 0;
+            $array['next_sms'] = "menu";
+            $array['diff_sms'] = 0;
+            $n = new next_table($array);
+            return $n;
+        }
+    }
+
+
+    public function setNext($next = null, $next_ext = null, $url = null, $sessionId = null, $next_sms = null)
+    {
+        #$this->LOG(__FUNCTION__, "  Executing Main menu rule");
+
+        $val = $this->getNext(1);
+
+        if (NEXT_WRITING and $next !== null)
+            $this->next = $next;
+        if ($val != 0) {
+            $maintenant = @date("Y-m-d H:i:s");
+            $updateData = array();
+            $element = "";
+            if ($next !== null) {
+                array_push($updateData, $next);
+                $element .= " next = ? , date=NOW() , ";
+            }
+            if ($next_sms !== null) {
+                array_push($updateData, $next_sms);
+                $element .= " next_sms = ? , date_sms=NOW(), ";
+            }
+            if ($next_ext !== null) {
+                array_push($updateData, $next_ext);
+                $element .= " next_ext = ?, ";
+            }
+            if ($url !== null) {
+                array_push($updateData, $url);
+                $element .= " url = ?, ";
+            }
+
+            if ($sessionId !== null) {
+                array_push($updateData, $sessionId);
+                $element .= " sessionId = ?, ";
+            } else {
+                array_push($updateData, $this->sessionId);
+                $element .= " sessionId = ?, ";
+            }
+
+            $element = substr($element, 0, length: -2);
+
+            //debug("hhhhhhhhhhhhhh");
+            $clauseWhere = "numero='" . $this->telephone . "' order by id";
+            if (isset($updateData)) {
+                $sqlQuery = "UPDATE next_table SET  $element WHERE $clauseWhere ";
+                $this->dbAcces->db_executeQuery($sqlQuery, $updateData);
+            }
+            // return $req = $this->queryUpdate("next_table", $updateData, $clauseWhere);
+            // return false;
+        } else {
+            debug("iiiiiiiiiiiii");
+            $maintenant = @date("Y-m-d H:i:s");
+            $InsertData = array($this->telephone);
+            $element = " numero, date , ";
+            $option = " ? , NOW() , ";
+
+            if ($next !== null) {
+                array_push($InsertData, $next);
+                $element .= " next, ";
+                $option .= " ? , ";
+            }
+            if ($next_sms !== null) {
+                array_push($InsertData, $next_sms);
+                $element .= " next_sms, ";
+                $option .= " ? , ";
+            }
+            if ($next_ext !== null) {
+                array_push($InsertData, $next_ext);
+                $element .= " next_ext, ";
+                $option .= " ? , ";
+            }
+
+            if ($url !== null) {
+                array_push($InsertData, $url);
+                $element .= " url, ";
+                $option .= " ? , ";
+            }
+
+            if ($sessionId !== null) {
+                array_push($InsertData, $sessionId);
+                $element .= " sessionId, ";
+                $option .= " ? , ";
+            } else {
+                array_push($InsertData, $this->sessionId);
+                $element .= " sessionId, ";
+                $option .= " ? , ";
+            }
+
+            $element = substr($element, 0, -2);
+            $option = substr($option, 0, -2);
+
+            $sqlQuery = "INSERT INTO next_table ($element) VALUES ($option) ";
+            $this->dbAcces->db_executeQuery($sqlQuery, $InsertData);
+        }
+    }
+
+
+    public function execURLH($url, $tableau)
+    {
+        $url_final = Fonction::formatURL($url, $tableau);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url_final);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        //curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        $reply = trim(curl_exec($ch));
+        curl_close($ch);
+        return $reply;
+    }
+
+    public static function formatURL($url, array $tableau)
+    {
+        foreach ($tableau as $key => $value) {
+            $url .= "$key=" . urlencode($value) . "&";
+        }
+        return substr($url, 0, strlen($url) - 1);
+    }
+
+    function retourneCheckServiceK($listeKeywordService, $content, $champ = null)
+    {
+        $chaine_resultante = preg_replace("#^(" . $listeKeywordService . ")(30|15|7){0,1}$#i", "\${1}_\${2}", $content);
+        if (!empty($chaine_resultante) && $chaine_resultante != null) {
+            $tabo = explode("_", $chaine_resultante);
+
+            $service = $this->retourneServiceK($tabo[0], $champ);
+            if ($service != null) {
+                return $service;
+            }
+        }
+        return null;
+    }
+
+    function parseKeyword($content, $listeKeywordService)
+    {
+        // Nettoyage
+        $content = strtolower(trim($content));
+        $content = preg_replace('/[^a-z0-9]/', '', $content);
+
+        // Liste → tableau
+        $keywords = explode('|', strtolower($listeKeywordService));
+        $keywords = array_flip($keywords); // optimisation
+
+        // 1. STOP GLOBAL
+        if (in_array($content, ['stop', 'off', 'fin', 'desab', 'desabonne', 'desabonnement'], true)) {
+            return [
+                'type' => 'STOP_ALL'
+            ];
+        }
+
+        // 2. STOP + KEYWORD (ex: stopbel)
+        if (preg_match('/^stop([a-z]+)/', $content, $match)) {
+            $keyword = $match[1];
+
+            if (isset($keywords[$keyword])) {
+                return [
+                    'type' => 'STOP_ONE',
+                    'keyword' => $keyword
+                ];
+            }
+        }
+
+        // 3. KEYWORD + DUREE (ex: bel30, bel15, bel7)
+        if (preg_match('/^([a-z]+)(30|15|7)$/', $content, $match)) {
+            $keyword = $match[1];
+            $duree = $match[2];
+
+            if (isset($keywords[$keyword])) {
+                return [
+                    'type' => 'SUB',
+                    'keyword' => $keyword,
+                    'duree' => $duree
+                ];
+            }
+        }
+
+        // 4. KEYWORD SIMPLE (ex: bel)
+        if (isset($keywords[$content])) {
+            return [
+                'type' => 'SUB',
+                'keyword' => $content,
+                'duree' => null
+            ];
+        }
+
+        // 5. Invalide
+        return null;
+    }
+
+
+    public function ussdHttp($url, $next = null, $numero = null, $content = null, $sessionId = null, $code_service = 192, $type = "SIMPLE")
+    {
+
+        if ($numero == null)
+            $numero = $this->soa;
+        if ($next == null)
+            $next = $this->next;
+        if ($content == null)
+            $content = $this->content;
+        if ($sessionId == null)
+            $sessionId = $this->sessionId;
+        $tablo["SOA"] = INDICATIF . substr($numero, -SIGNIFICATIF);
+        $tablo["Content"] = $content;
+        $tablo["next"] = $next;
+        $tablo["sessionId"] = $sessionId;
+        $tablo["canal"] = "USSD";
+        $tablo["code_service"] = $code_service;
+        $tablo["type"] = $type;
+        $chaine = $this->execURLH($url, $tablo);
+
+        $tab = explode("\n", $chaine);
+        $i = 0;
+        foreach ($tab as $line) {
+            $ls = trim(str_replace(array("\r", "\n"), array("", ""), $line));
+            if (strlen($ls) <= 0)
+                break;
+            else
+                $i++;
+        }
+
+        $n = $i + 1;
+        $tabe = array();
+        for ($i = $n; $i < count($tab); $i++) {
+            $tabe[] = $tab[$i];
+        }
+
+        if (isset($tab[$n]))
+            $contenu = ltrim(implode("\n", $tabe));
+        else
+            $contenu = "Probleme de connexion";
+        $def = false;
+        $fed = false;
+        $free_flow = "FB";
+        $next = "";
+        foreach ($tab as $line) {
+            if (preg_match("#FreeFlow#", $line)) {
+                $tab2 = explode(":", $line);
+                $n2 = count($tab2) - 1;
+                if (isset($tab2[$n2]))
+                    $free_flow = str_replace(" ", "", trim($tab2[$n2]));
+                else
+                    $free_flow = "FB";
+                $def = true;
+            }
+            if (preg_match("#next#", $line)) {
+                $tab2 = explode(":", $line);
+                $n2 = count($tab2) - 1;
+                if (isset($tab2[$n2]))
+                    $next = str_replace(" ", "", trim($tab2[$n2]));
+                else
+                    $next = "";
+                $fed = true;
+            }
+            if ($def and $fed)
+                break;
+        }
+        $retour = new next_table();
+        $retour->numero = $numero;
+        $retour->next_ext = $next;
+        $retour->contenu_ext = $contenu;
+        $retour->freeFlow_ext = $free_flow;
+        return $retour;
+    }
+}

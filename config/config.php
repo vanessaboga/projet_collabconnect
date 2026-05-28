@@ -1,0 +1,44 @@
+<?php
+error_reporting(E_ALL);
+date_default_timezone_set('Africa/Abidjan');
+
+DEFINE('DB_HOST', '127.0.0.1');
+DEFINE('DB_NAME', 'services_collabconnect');
+DEFINE('DB_USER', 'root');
+DEFINE('DB_PASS', '');
+
+DEFINE('API_URL', 'http://localhost/CollectionAPI/start');
+DEFINE('API_TOKEN', 'YOUR_TOKEN');
+
+
+DEFINE("TITLE_SERVICE", "COLLAB CONNECT");
+
+DEFINE("TAILLE_RUBRIQUES_MENU", 5);
+DEFINE("NOMBRE_SUIVANT", 9);
+DEFINE("NOMBRE_PRECEDENT", 0);
+DEFINE("NOMBRE_DESAB", 9);
+
+
+DEFINE("DESIGNATION_MENAGE", 9);
+DEFINE("DESIGNATION_REPASSAGE", 1);
+
+DEFINE("SIGNIFICATIF", 8);
+DEFINE("INDICATIF", "228");
+
+DEFINE("LONGUEUR_CODE_PAIEMENT", "4");
+DEFINE("LONGUEUR_NUMERO", "10");
+
+DEFINE("ENV_ACCENT", true);
+DEFINE("NEXT_WRITING", true);
+
+DEFINE("TARIF_RESERVATION", 200);
+
+
+DEFINE("NEXT_EXTERNAL", "ENTREE_EXTERNAL_NISSA");
+DEFINE("EXTERNAL", "RETOUR_EXTERNAL_NISSA");
+
+DEFINE("URL_EXTERNAL", "http://localhost/CollectionAPI/start/external/");
+
+/**
+ * Déclaration centralisée des menus de specialites
+ */
