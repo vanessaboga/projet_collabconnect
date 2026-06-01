@@ -17,7 +17,7 @@ class MENU extends Fonction
         $this->messager = new Message($this);
     }
 
-    public function setResponse($result, $text, $next = 'menu', $freeFlow = '', $facturation = "YES")
+    /*public function setResponse($result, $text, $next = 'menu', $freeFlow = '', $facturation = "YES")
     {
         if ($this->canal == "USSD") {
             $this->setNext($next);
@@ -43,7 +43,41 @@ class MENU extends Fonction
             //$this->cdr($a_afficher);
             //$this->sms_envoi($this->telephone, $a_afficher, __FUNCTION__);
         }
+    }*/
+	
+	public function setResponse($result, $text, $next = 'menu', $freeFlow = '', $facturation = "YES")
+{
+    if ($this->canal == "USSD") {
+
+        $this->setNext($next);
+
+        if (is_object($text) && isset($text->pourAfficher)) {
+            $text = $text->pourAfficher;
+        }
+
+        if (!is_string($text)) {
+            $text = (string)$text;
+        }
+
+        $freeFlow = ($freeFlow === "") ? "FB" : "FC";
+
+        header("freeflow: " . $freeFlow);
+        header("next: " . $next);
+        header("Content-Type: text/plain; charset=ISO-8859-1");
+
+        echo "freeflow: " . $freeFlow . "\n";
+        echo "next: " . $next . "\n";
+        echo "ussdstring: " . trim($text);
+
+       
     }
+	else {
+            $a_afficher = $text->title_sans_caractere;
+            $this->cdr($a_afficher);
+            $this->sms_envoi($this->telephone, $a_afficher, _FUNCTION_);
+        }
+	
+}
 
     public function menuErreur(Service $service = null)
     {
