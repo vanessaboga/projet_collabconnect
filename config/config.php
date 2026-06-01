@@ -37,7 +37,11 @@ DEFINE("TARIF_RESERVATION", 200);
 DEFINE("NEXT_EXTERNAL", "ENTREE_EXTERNAL_NISSA");
 DEFINE("EXTERNAL", "RETOUR_EXTERNAL_NISSA");
 
-DEFINE("URL_EXTERNAL", "http://localhost/CollectionAPI/start/external/");
+DEFINE("URL_EXTERNAL", "");
+
+
+
+
 
 /**
  * Déclaration centralisée des menus de specialites

@@ -1091,9 +1091,38 @@ class Central extends MENU
         }
     }
 
-    public function getMenuPaiementFacture(() {
 
+    public function getMenuPaiementFacture()
+    {
+
+        $etal = $this->getEtatLecture();
+        $reference = $etal->page;
+        $facture = $this->retourneFacture(" and f.reference = '" . $reference . "'");
+        if ($facture != null) {
+
+            switch ($this->content) {
+                case 0:
+                    $pourAfficher = new EtatLecture(1, "Facture Num: {$facture->reference}{CR}Service :{$facture->libelle}{CR}Total à payer : {$facture->montant} FCFA{CR}1. Proceder au paiement", "0.Retour");
+                    $this->setResponse(__FUNCTION__, $pourAfficher, "confirmerFacture_{$facture->reference}");
+                    break;
+
+                default:
+                    if (ctype_digit($this->content) && strlen($this->content) == LONGUEUR_CODE_PAIEMENT) {
+
+                        print "facuration facture ";
+                    } else {
+                        $montant = number_format($facture->montant, 0, '', '');
+                        $pourAfficher = new EtatLecture(1, "Paiement de {$montant}F par AM, entrer le code PIN pour confirmer.", "0.Retour");
+                        $this->setResponse(__FUNCTION__, $pourAfficher, "paiementFacture_{$facture->reference}");
+                    }
+
+                    break;
+            }
+        } else {
+            $this->menuErreur();
+        }
     }
+
 
     public function getMenuInvitPayerFacture()
     {

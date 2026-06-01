@@ -197,50 +197,6 @@ class Fonction extends Request
     }
 
 
-
-
-    public function getMenuBundleService(Service $service)
-    {
-        $text = "";
-        $where = " WHERE is_active='1' AND id_service='" . $service->id_projet . "' ORDER BY id ASC ";
-        $sqlQuery = "SELECT * FROM forfait " . $where;
-        if ($ligne = $this->dbAcces->select($sqlQuery)) {
-
-            for ($i = 0; $i <= count($ligne) - 1; $i++) {
-
-                $bundle = new Bundle($ligne[$i]);
-                $text .= $i + 1 . '. ' . $bundle->souscription . "(" . $bundle->tarif . " F)" . '{CR}';
-            }
-            return substr($text, 0, strlen($text) - 4);
-        } else
-            return null;
-    }
-
-    public static function retourneBundleByNISSA(Service $service, $souscription = '')
-    {
-        switch ($souscription) {
-            case Config::FORFAIT_SEMAINE:
-            case Config::INT_SEMAINE:
-                return new BundleNISSA($service, Config::FORFAIT_SEMAINE, Config::SEMAINE_AFF, Config::TARIF_ABONNEMENT_SEMAINE, Config::INT_SEMAINE, "07 jours", "PRESSEMOBILEWEEKLY", "Subscription Purchase");
-                break;
-            case Config::FORFAIT_MOIS:
-            case Config::INT_MOIS:
-                return new BundleNISSA($service, Config::FORFAIT_MOIS, Config::MOIS_AFF, Config::TARIF_ABONNEMENT_MOIS, Config::INT_MOIS, "30 jours", "PRESSEMOBILEMONTHLY", "Subscription Purchase");
-                break;
-            case Config::FORFAIT_JOUR:
-            case Config::INT_JOUR:
-                return new BundleNISSA($service, Config::FORFAIT_JOUR, Config::JOUR_AFF, Config::TARIF_ABONNEMENT_JOUR, Config::INT_JOUR, "1 jour");
-                break;
-            case Config::STRING_ILLIMIX:
-            case Config::INT_ILLIMIX:
-                return new BundleNISSA($service, Config::STRING_ILLIMIX, Config::ILLIMIX_AFF, $service->tarif_consultation, Config::INT_ILLIMIX, $service->tarif_consultation . "F/SMS");
-                break;
-            default:
-                return new BundleNISSA($service, 'CONSULTATION', '', Config::TARIF_CONSULTATION, 0, "", "PRESSEMOBILECONTENT", "Content Purchase");
-                break;
-        }
-    }
-
     public function traceFacturationRubrique($amount, $type, $rubrique, $id_service, $service, $plateforme, $status, $telephone = null, $date = null)
     {
         if ($telephone == NULL)
