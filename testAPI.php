@@ -13,18 +13,14 @@ print_r($airtel);
 $transactionId = "TXN" . time();
 
 //$response = $airtel->paymentPush("0701234567", 1000, "Paiement facture YNOV",  $transactionId);
-
 // print_r($response);
 
 
 // $statut = $airtel->checkTransaction($transactionId);
-
 // print_r($statut);
 
 // $response = $airtel->checkTransaction($transactionId);
-
 // $status = $response['data']['transaction']['status'];
-
 // echo getTransactionStatusLabel($status);
 
 
@@ -39,10 +35,10 @@ $transactionId = "TXN" . time();
 // }
 
 
+
 $reference = "Paiement facture";
 $msisdn = "0701234567";
 $amount = 10;
 $resulat =  $airtel->airtelPayment($reference, $msisdn, $amount, $transactionId);
-
 
 echo json_encode($resulat);

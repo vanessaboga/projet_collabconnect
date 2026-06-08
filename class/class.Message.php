@@ -101,7 +101,7 @@ class Message
             $delai = "1";
 
         $delai = str_replace('J', '', $delai);
-        $title = "{$libelle}{CR}Cout de reservation : {$montant}F, un agent passera dans {$delai}jrs a 9h pour la tache.";
+        $title = "{$libelle}{CR}Cout de reservation : {$montant}F, un agent passera dans {$delai}jrs a 9h pour excecuter la tache.";
         $option = "1. OUI{CR}2. NON{CR}0.Retour";
         return new EtatLecture(1, $title, $option);
     }
@@ -183,23 +183,7 @@ class Message
         return new EtatLecture(1, "recevez l'actualite " . $service->description . " sur ton mobile a " . $service->tarif_consultation . "F la consultation.", "1. Confirmer{CR}0. Retour");
     }
 
-    public function notificationAbonnOK(Service $service, BundleNISSA $bundle, $renew, $plus = NULL)
-    {
-        if ($renew == "YES")
-            $libelle = "Avec renouvellement automatique";
-        else
-            $libelle = "Sans renouvellement automatique";
-
-        if ($service->service == "JOB ALERT")
-            $additif = " pour " . $bundle->affichage;
-        else
-            $additif = " {CR}" . $service->tarif_consultation . "F/SMS";
-        $aff = "Felicitation, tu es abonne a " . $service->description . " $libelle" . $additif . ".{CR}Pour te desabonner compose " . strtoupper($service->shortcode);
-        return new EtatLecture(1, $aff);
-    }
-
-
-
+   
 
     public function menuNotifUssdRenewOK(Service $service, $libelle)
     {
@@ -257,29 +241,16 @@ class Message
     {
         //return "Vous avez choisi le service {$service->description}." . $service->tarif_consultation . "/SMS\nMerci d'envoyer par sms:\n1 pour une offre " . NISSA::INT_MOIS . "Jours\n2 pour une offre " . NISSA::INT_QUINZAINE . "Jours\n3 pour une offre " . NISSA::INT_SEMAINE . "Jours\n4 pour une Consultation";
     }
-    public static function prolongementOK(Bundle $bundle, Service $service)
-    {
-        return new EtatLecture(1, "Cher client , ta souscription au service {$service->description} a ete prolonge de " . $bundle->affichage . ". Pour te desabonner envoyez STOP " . strtoupper($service->level) . " au {$service->shortcode_sms}.", "0. Retour");
-    }
-
+    
 
     public static function contenuIndisponible(Service $service)
     {
         return new EtatLecture(1, "Desole, il n y a pas de contenus disponibles pour le service " . $service->description . ". Merci de ressayer plus tard. ", "0. Retour");
     }
 
-    public function consultationOk(Service $service, BundleNISSA $bundle)
-    {
-        $aff = "La consultation du service {$service->description} t' as coute " . $bundle->tarif . "F. Tu recevras le contenu via SMS sous peu. ";
-        $option = "{CR}0. Retour{CR}00. Accueil";
-        return new EtatLecture(1, $aff, $option);
-    }
+   
 
-    public function consultationOkSMS2(Service $service, Bundle $bundle)
-    {
-        return new EtatLecture(1, "La consultation du service {$service->description} t'as a couté " . $$bundle->tarif . "F. Pour plus de contenus, compose " . $service->shortcode, false, 0);
-    }
-
+  
     public function resultatName($nom1, $nom2)
     {
         $lovename = strtolower(preg_replace("/ /", "", strip_tags(trim($nom1 . $nom2))));
@@ -339,16 +310,9 @@ class Message
         return $this->resultatName($nom1, $nom2);
     }
 
-    public static function abonnementOKSMS(Bundle $bundle, Service $service)
-    {
-        return "Felicitations! Tu viens de t'abonner a la rubrique {$service->description}. Le cout du service est " . $bundle->tarif . "F/" . $bundle->affichage . ". Pour te desabonner envoyez STOP {$service->level} au {$service->shortcode}.";
-    }
+   
 
-    public function menuProlongement(EtatAbonne $etatAbonne)
-    {
-        $service = $this->NISSA->retourneService($etatAbonne->node);
-        return new EtatLecture(1, "Cher abonne, ton abonnement $service->description arrive a echeance dans " . $etatAbonne->jour . " Jrs, " . $etatAbonne->heure . " H et 00 Min.", "1. Prolonger ton abonnement{CR}0. Annuler - Retour");
-    }
+
     public static function abonnementProlongement()
     {
         return new EtatLecture(1, "Veuillez selectionner l'offre a ajouter a ton forfait actuel.", "1. Offre Semaine{CR}2. Offre Quinzaine{CR}3. Offre Mois{CR}0. Retour{CR}00. Accueil");
@@ -357,99 +321,6 @@ class Message
 
 
 
-    public static function creditInsuffisantSMS(Service $service, Bundle $bundle)
-    {
-        return "Ton credit est insuffisant pour un abonnement " . $bundle->souscription_aff . " au service " . $service->libelle . ". Tu dois disposer d'au moins " . $bundle->tarif . "F. Plus d'infos sur " . substr($service->shortcode, 0, 4) . "#";
-    }
-
-    public static function confirmDesabonnSMS()
-    {
-        return ("Souhaites-tu quitter le service Togocom Kiosque?" . PHP_EOL . "1. Confirmer{CR}0. Annuler - Retour");
-    }
-    public static function pasEncoreAbonneSMS(Service $service)
-    {
-        return " Desole , tu n'es pas inscrit au service {$service->libelle}. Veuilles composer {$service->shortcode} ou envoyer {$service->level} au {$service->shortcode2} pour souscrire a ce contenu.";
-    }
-    //SMSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
-    public static function pourConsulter(Service $service)
-    {
-        return "Merci de confirmer ton choix pour ce contenu en envoyant 1 par sms au " . $service->shortcode_sms . ". Tu seras facture a " . $service->tarif_consultation . "F pour cette consultation.";
-    }
-    public static function consultationOKSMS(Service $service)
-    {
-        return "La consultation du service {$service->description} t'a coute " . $service->tarif_consultation . "F. Pour plus de contenus, compose {$service->shortcode}";
-    }
-    public static function contenuIndisponibleSMS(Service $service)
-    {
-        return "Desole , il n y a pas de contenus disponibles pour le service {$service->description}. Merci de ressayer plus tard.";
-    }
-    public static function pourSabonner(Service $service, Bundle $bundle)
-    {
-        return "Merci de confirmer ton choix pour ce contenu en envoyant 1 pour un abonnement simple ou 2 pour un abonnement renouvelable automatiquement." . $bundle->tarif . "F/" . $bundle->affichage . ".";
-    }
-    public static function prolongementOKSMS(Service $service, Bundle $bundle)
-    {
-        return "Felicitations! ta souscription a la rubrique {$service->description} a ete prolonge de " . $bundle->affichage . ". Cout du service : " . $bundle->tarif . "F. Pour te desabonner envoi STOP {$service->level} au {$service->shortcode2}";
-    }
-    public function desabonnToutSMS($serviceName = "Togocom Kiosque")
-    {
-        return "Cher client Togocom, ta souscription au service $serviceName a ete annule avec succes.  Pour te reabonner, compose {$this->shortcode}";
-    }
-    public function aucunAbonnementSMS()
-    {
-        return "Desole, tu n'es inscrit a aucun service Togocomom  Kiosque. Pour t'abonner a nos services Sports, Actualites et Divertissement, compose {$this->shortcode}";
-    }
-    public static function renewAcceptSMS(Service $service, Bundle $bundle, $nb = '3 jrs')
-    {
-        return "Merci pour ta confirmation ! Ta souscription " . $bundle->souscription_aff . " au service {$service->description} sera donc renouvele automatiquement dans $nb à {$bundle->tarif}F.";
-    }
-
-    //SMSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS
-    public static function pasEncoreAbonne(Service $service)
-    {
-        return new EtatLecture(1, "Desole, tu n'es pas inscrit a cette rubrique. Pour t' abonner, envoi {$service->level} au {$service->shortcode2} .", "0. Retour");
-    }
-
-    public static function operationDesabAnnuler($serviceName = "Togocom Kiosque")
-    {
-        return "Cher client Togocom, ton desabonnement au service $serviceName a ete annule avec succes.";
-    }
-
-
-    public static function dejaAbonne(Service $service)
-    {
-        return "Desole! tu as deja une souscription active au service " . $service->description . ". veuilles composer " . substr($service->shortcode, 0, 4) . "#";
-    }
-
-
-
-    public static function desabonnOKSMS(Service $service)
-    {
-        return "Cher client Togocom, ta souscription au service {$service->description} a ete annule avec succes .  Pour te reabonner, compose {$service->shortcode} ou envoi {$service->level} au {$service->shortcode_sms}";
-    }
-
-    #########################################################CE QUI CHANGE PAS#######################################
-    public static function autoAbonnementNO(Service $service, Bundle $bundle)
-    {
-        return "Ton abonnement au service {$service->description} n'a pas pu etre renouvele . Veuilles recharger ton compte d'au moins " . $bundle->tarif . "F pour activer vos contenus.";
-    }
-
-    public static function exortation(Service $service, Bundle $bundle)
-    {
-        return "Ta souscription " . $bundle->souscription_aff . " au service {$service->description} a expire . Tu peux envoyer {$service->level} au {$service->shortcode_sms} pour un renouvelement. Plus d'infos {$service->shortcode}";
-    }
-
-    public static function autoAbonnementOK(Service $service, Bundle $bundle)
-    {
-        return "Ton abonnement au service {$service->description} a ete renouvele avec succes pour $bundle->affichage a 0F. Retrouve plus d'infos  sur $service->shortcode.";
-    }
-
-    public static function notification(Bundle $bundle, Service $service, $nb = "24", $renew = 'YES')
-    {
-
-        return "Ta souscription " . $bundle->souscription_aff . " au service " . $service->description . " sera renouvele dans " . $nb . "H a 0F pour " . $bundle->affichage . ". Pour te desabonner.envoyez STOP " . strtoupper($service->level) . " au " . $service->shortcode_sms;
-    }
-
 
 
     public function smsWrongMt()
@@ -457,28 +328,8 @@ class Message
         return "Desole ,  tu as saisi un mot-cle incorrect. Pour vous abonner a TOGOCOM INFOS , compose {$this->shortcode}";
     }
 
-    public function libelleChoixMode(Service $service, $forfait, $tarif, $type = false)
-    {
 
-        if ($type) {
-            $message = "Bravo, tu viens d'opter pour {$service->description} et tu seras facture a $tarif F/SMS{CR}1. Avec abonnement automatique{CR}2. Sans renouvellement automatique";
-        } else {
-            $title = $service->libelle . " - Forfait $forfait ($tarif F/SMS) ";
-            $aff = "1. Abonnement renouvelable{CR}2. Abonnement Simple{CR}3. Consultation(" . $service->tarif_consultation . "F)";
-            $message = $title . "{CR}" . $aff;
-        }
-        $option = "0.Retour";
-
-        return new EtatLecture(1, $message, $option);
-    }
-
-    public static function menuChoixBundleAbonnementSimple(Service $service)
-    {
-        $libelle = $service->description;
-        return new EtatLecture(1, $libelle . "{CR}1. Offre mois (" . $service->tarif_mois . "F){CR}2. Offre semaine (" . $service->tarif_semaine . "F){CR}3. Jour(" . $service->tarif_jour . "F){CR}4. Consultation(" . $service->tarif_consultation . "F)", "9. Se débonner{CR}0. Retour");
-        #else return new EtatLecture(1,"$libelle{CR}1. Offre ".NISSA::INT_MOIS."Jours{CR}2. Offre ".NISSA::INT_QUINZAINE."Jours{CR}3. Offre ".NISSA::INT_SEMAINE."Jours{CR}4. Se débonner","0. Retour");
-
-    }
+    
     //la lecture d'une consultation par rapport au next et a l'id*************************
     /*public  function abonneLecture($id, $page)
     {

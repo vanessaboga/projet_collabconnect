@@ -1,6 +1,6 @@
 <?php
 error_reporting(E_ALL);
-date_default_timezone_set('Africa/Abidjan');
+date_default_timezone_set('Africa/Brazzaville');
 
 DEFINE('DB_HOST', '127.0.0.1');
 DEFINE('DB_NAME', 'services_collabconnect');
@@ -23,10 +23,10 @@ DEFINE("DESIGNATION_MENAGE", 9);
 DEFINE("DESIGNATION_REPASSAGE", 1);
 
 DEFINE("SIGNIFICATIF", 8);
-DEFINE("INDICATIF", "228");
+DEFINE("INDICATIF", "242");
 
 DEFINE("LONGUEUR_CODE_PAIEMENT", "4");
-DEFINE("LONGUEUR_NUMERO", "10");
+DEFINE("LONGUEUR_NUMERO", "9");
 
 DEFINE("ENV_ACCENT", true);
 DEFINE("NEXT_WRITING", true);
