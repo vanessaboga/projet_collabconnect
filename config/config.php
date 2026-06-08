@@ -42,7 +42,6 @@ DEFINE("URL_EXTERNAL", "");
 
 
 
-
 /**
  * Déclaration centralisée des menus de specialites
  */
