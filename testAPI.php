@@ -7,38 +7,61 @@ include_once 'autoload.php';
 $db = new dbAccess();
 $airtel = new AirtelMoney($db, true);
 
+$msisdn = "0701234567";
+$amount = 10;
 
-print_r($airtel);
+
 // Paiement
 $transactionId = "TXN" . time();
 
-//$response = $airtel->paymentPush("0701234567", 1000, "Paiement facture YNOV",  $transactionId);
-// print_r($response);
+$response = $airtel->paymentPush($msisdn, $amount, "Paiement facture YNOV",  $transactionId);
+print_r(json_encode($response));
 
 
-// $statut = $airtel->checkTransaction($transactionId);
-// print_r($statut);
+/////////////////////////////// PAIEMENT RESEVATION  //////////////
 
-// $response = $airtel->checkTransaction($transactionId);
-// $status = $response['data']['transaction']['status'];
-// echo getTransactionStatusLabel($status);
+$etat = '';
+
+if ($statut = $airtel->checkTransaction($transactionId)) {
+    print_r($statut);
+
+    if ($statut == 'TS') {
+        $etat = 'SUCCESS';
+    } elseif ($statut == 'TF' || $statut == 'TE') {
+        $etat = 'FAILED';
+    } elseif ($statut == 'TIP') {
+        $etat = 'PENDING';
+    } elseif ($statut == 'TA') {
+        $etat = 'AMBIGUOUS';
+    }
+
+    $return = array(
+        "etat" => $etat,
+        "status" => $statut
+
+    );
+    print_r(json_encode($return));
+}
+
+////////////////////// VERIFICATION DE STATUT //////////////
 
 
-// if ($status == 'TS') {
-//     $etat = 'SUCCESS';
-// } elseif ($status == 'TF' || $status == 'TE') {
-//     $etat = 'FAILED';
-// } elseif ($status == 'TIP') {
-//     $etat = 'PENDING';
-// } elseif ($status == 'TA') {
-//     $etat = 'AMBIGUOUS';
-// }
+if ($response = $airtel->checkTransaction($transactionId)) {
 
+    $status = $response['data']['transaction']['status'];
+    $retour = $airtel->getTransactionStatusLabel($status);
 
+    $return = array(
+        "etat" => $etat,
+        "status" => $status
+
+    );
+    print_r(json_encode($return));
+}
+
+////////////////////// PAIEMENT FACTURE //////////////
 
 $reference = "Paiement facture";
-$msisdn = "0701234567";
-$amount = 10;
 $resulat =  $airtel->airtelPayment($reference, $msisdn, $amount, $transactionId);
 
-echo json_encode($resulat);
+print_r(json_encode($resulat));
